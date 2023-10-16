@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { HiMiniPlayPause } from "react-icons/hi2";
 import { FiRefreshCcw } from "react-icons/fi";
@@ -6,9 +6,43 @@ import { FiRefreshCcw } from "react-icons/fi";
 function App() {
  const [breakLength, setBreakLength] = useState(5);
  const [sessionLength, setSessionLength] = useState(25);
- const [sessionTime, setSesisonTime] = useState("25:00");
+ const [sessionTime, setSessionTime] = useState(1500);
  const [isBreak, setIsBreak] = useState(false);
  const [isPlaying, setIsPlaying] = useState(false);
+
+ function reset() {
+  setBreakLength(5);
+  setSessionLength(25);
+  setSessionTime(1500);
+  setIsBreak(false);
+  setIsPlaying(false);
+ }
+
+ useEffect(() => {
+  function countTime() {
+   if (!isPlaying) {
+    return;
+   }
+
+   if (sessionTime > 0) {
+    setSessionTime((prev) => prev - 1);
+    return;
+   }
+
+   if (sessionTime === 0) {
+    if (isBreak) {
+     setIsBreak(false);
+     setSessionTime(sessionLength * 60);
+     return;
+    }
+    setIsBreak(true);
+    setSessionTime(breakLength * 60);
+    return;
+   }
+  }
+
+  setTimeout(countTime, 1000);
+ }, [breakLength, isBreak, isPlaying, sessionLength, sessionTime]);
 
  return (
   <div
@@ -37,14 +71,20 @@ function App() {
       }}
      >
       <span
-       onClick={() => setBreakLength((prev) => prev - 1)}
+       onClick={() => {
+        setBreakLength((prev) => prev - 1);
+        setIsPlaying(false);
+       }}
        style={{ cursor: "pointer" }}
       >
        -
       </span>
       {breakLength}
       <span
-       onClick={() => setBreakLength((prev) => prev + 1)}
+       onClick={() => {
+        setBreakLength((prev) => prev + 1);
+        setIsPlaying(false);
+       }}
        style={{ cursor: "pointer" }}
       >
        +
@@ -66,14 +106,20 @@ function App() {
       }}
      >
       <span
-       onClick={() => setSessionLength((prev) => prev - 1)}
+       onClick={() => {
+        setSessionLength((prev) => prev - 1);
+        setIsPlaying(false);
+       }}
        style={{ cursor: "pointer" }}
       >
        -
       </span>
       {sessionLength}
       <span
-       onClick={() => setSessionLength((prev) => prev + 1)}
+       onClick={() => {
+        setSessionLength((prev) => prev + 1);
+        setIsPlaying(false);
+       }}
        style={{ cursor: "pointer" }}
       >
        +
@@ -90,7 +136,9 @@ function App() {
     >
      Session
     </h2>
-    <h3 style={{ fontSize: 35, margin: 0, marginBottom: 15 }}>{sessionTime}</h3>
+    <h3 style={{ fontSize: 35, margin: 0, marginBottom: 15 }}>
+     {Math.floor(sessionTime / 60)}:{String(sessionTime % 60).padStart(2, "0")}
+    </h3>
     <div
      style={{
       display: "flex",
@@ -99,8 +147,16 @@ function App() {
       justifyContent: "center",
      }}
     >
-     <HiMiniPlayPause fontSize={35} style={{ cursor: "pointer" }} />
-     <FiRefreshCcw fontSize={35} style={{ cursor: "pointer" }} />
+     <HiMiniPlayPause
+      fontSize={35}
+      style={{ cursor: "pointer" }}
+      onClick={() => setIsPlaying((prev) => !prev)}
+     />
+     <FiRefreshCcw
+      fontSize={35}
+      style={{ cursor: "pointer" }}
+      onClick={reset}
+     />
     </div>
    </div>
   </div>
