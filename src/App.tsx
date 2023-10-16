@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { HiMiniPlayPause } from "react-icons/hi2";
 import { FiRefreshCcw } from "react-icons/fi";
@@ -9,40 +9,60 @@ function App() {
  const [sessionTime, setSessionTime] = useState(1500);
  const [isBreak, setIsBreak] = useState(false);
  const [isPlaying, setIsPlaying] = useState(false);
+ const [calculatedTime, setCalculatedTime] = useState("");
+
+ const audio = useRef<HTMLAudioElement | null>(null);
+
+ useEffect(() => {
+  setSessionTime(() => {
+   if (isBreak) {
+    return breakLength * 60;
+   }
+   return sessionLength * 60;
+  });
+ }, [breakLength, isBreak, sessionLength]);
+
+ useEffect(() => {
+  setCalculatedTime(
+   `${Math.floor(sessionTime / 60)}:${String(sessionTime % 60).padStart(
+    2,
+    "0"
+   )}`
+  );
+ }, [sessionTime]);
 
  function reset() {
   setBreakLength(5);
   setSessionLength(25);
+  if (audio.current) audio.current.pause();
   setSessionTime(1500);
   setIsBreak(false);
   setIsPlaying(false);
  }
 
  useEffect(() => {
-  function countTime() {
-   if (!isPlaying) {
-    return;
-   }
+  let timer: number | undefined;
 
-   if (sessionTime > 0) {
-    setSessionTime((prev) => prev - 1);
-    return;
-   }
+  if (isPlaying && sessionTime > 0) {
+   timer = setTimeout(() => {
+    setSessionTime((prevTime) => prevTime - 1);
+   }, 1000);
+  } else if (sessionTime === 0) {
+   if (audio.current) audio.current.play();
 
-   if (sessionTime === 0) {
-    if (isBreak) {
-     setIsBreak(false);
-     setSessionTime(sessionLength * 60);
-     return;
-    }
+   if (isBreak) {
+    setIsBreak(false);
+    setSessionTime(sessionLength * 60);
+   } else {
     setIsBreak(true);
     setSessionTime(breakLength * 60);
-    return;
    }
   }
 
-  setTimeout(countTime, 1000);
- }, [breakLength, isBreak, isPlaying, sessionLength, sessionTime]);
+  return () => {
+   clearTimeout(timer);
+  };
+ }, [isPlaying, sessionTime, breakLength, sessionLength, isBreak, audio]);
 
  return (
   <div
@@ -72,7 +92,7 @@ function App() {
      >
       <span
        onClick={() => {
-        setBreakLength((prev) => prev - 1);
+        setBreakLength((prev) => (prev > 1 ? prev - 1 : 1));
         setIsPlaying(false);
        }}
        style={{ cursor: "pointer" }}
@@ -107,7 +127,7 @@ function App() {
      >
       <span
        onClick={() => {
-        setSessionLength((prev) => prev - 1);
+        setSessionLength((prev) => (prev > 1 ? prev - 1 : 1));
         setIsPlaying(false);
        }}
        style={{ cursor: "pointer" }}
@@ -134,10 +154,10 @@ function App() {
       fontSize: 35,
      }}
     >
-     Session
+     {isBreak ? "Break" : "Session"}
     </h2>
     <h3 style={{ fontSize: 35, margin: 0, marginBottom: 15 }}>
-     {Math.floor(sessionTime / 60)}:{String(sessionTime % 60).padStart(2, "0")}
+     {calculatedTime}
     </h3>
     <div
      style={{
@@ -158,6 +178,7 @@ function App() {
       onClick={reset}
      />
     </div>
+    <audio src="./bell.mp3" ref={audio} />
    </div>
   </div>
  );
